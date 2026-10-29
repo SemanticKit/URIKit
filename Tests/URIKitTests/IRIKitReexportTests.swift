@@ -46,4 +46,27 @@ struct IRIKitReexportTests {
             _ = try IRI(validating: text)
         }
     }
+
+    @Test("HTTP-family IRIs without a host fail scheme-based normalization, as URIKit's strict mode did.")
+    func requiresHostForHTTPFamily() throws {
+        let iri = try IRI(validating: "https:/relative")
+
+        #expect(throws: IRIError.invalidIRI("https:/relative")) {
+            _ = try iri.normalized(.syntaxAndSchemeBased)
+        }
+    }
+
+    @Test("Empty or all-whitespace text is not an IRI.", arguments: ["", "  \n \t  "])
+    func rejectsEmptyInput(_ text: String) {
+        #expect(throws: IRIError.invalidIRI(text)) {
+            _ = try IRI(validating: text)
+        }
+    }
+
+    @Test("XML text decoded by its format normalizes as URIKit's legacy layer did.")
+    func decodedXMLIdentifierNormalizes() throws {
+        let decoded = try IRI(validating: "HTTPS://Example.org/folder/file%20name?a=1&b=2")
+
+        #expect(try decoded.normalized(.syntaxAndSchemeBased).rawValue == "https://example.org/folder/file%20name?a=1&b=2")
+    }
 }

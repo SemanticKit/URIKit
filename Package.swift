@@ -14,9 +14,15 @@ let package = Package(
             targets: ["URIKit"]
         )
     ],
+    dependencies: [
+        .package(url: "https://github.com/SemanticKit/IRIKit.git", branch: "wp/03a-iri-normalization")
+    ],
     targets: [
         .target(
-            name: "URIKit"
+            name: "URIKit",
+            dependencies: [
+                .product(name: "IRIKit", package: "IRIKit")
+            ]
         ),
         .testTarget(
             name: "URIKitTests",

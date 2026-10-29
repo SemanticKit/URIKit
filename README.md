@@ -38,5 +38,19 @@ identifier type:
 - **ACE output.** URIKit printed internationalized hosts in their ASCII
   Compatible Encoding (`xn--bcher-kva.example`). IRIKit keeps the legible
   form (`bücher.example`) and treats both spellings as equivalent under
-  `.syntaxAndSchemeBased`. Code that needs an ASCII host, such as a DNS
-  lookup, produces the ACE form at that boundary.
+  `.syntaxAndSchemeBased`. IRIKit has no public ACE projection, and
+  `URL(iri)` percent-encodes a non-ASCII host rather than converting it.
+  Code that needs an ASCII host, such as a DNS lookup or an HTTP `Host`
+  header, gets it from Foundation at that boundary:
+  `URLComponents(string: iri.rawValue)?.encodedHost` returns
+  `xn--bcher-kva.example`, and `URL(string: iri.rawValue)` gives a URL whose
+  host is already in ACE form.
+
+Nothing in the SemanticKit organization calls `LegacyXMLIRICompatibility`,
+and no RDF/XML decoder exists yet, so there was no caller to move. SolidKit's
+`SolidSpecIntegration.normalizeResourceIdentifier` is the one caller of
+`URINormalizer`. It moves to IRIKit under
+[SemanticKit/SolidKit#1](https://github.com/SemanticKit/SolidKit/issues/1)
+(WP-08c): `IRI(validating:)` after trimming at its input, normalization with
+`.syntaxAndSchemeBased`, and the ACE host from Foundation where its HTTP
+requests need one.

@@ -1,3 +1,4 @@
+import Foundation
 import Testing
 import URIKit
 
@@ -35,16 +36,25 @@ struct IRIKitReexportTests {
     }
 
     @Test(
-        "Surrounding whitespace and XML escaping are not IRI text; the decoder that read the text removes them first.",
+        "Text that still carries boundary noise is rejected, not repaired; the decoder that read it fixes it first.",
         arguments: [
             "  https://example.org/a  ",
-            "HTTPS://Example.org\\folder\\file name?a=1&amp;b=2",
+            "https://example.org/with space",
+            "https://example.org\\folder\\file",
         ]
     )
     func boundaryTextIsNotAnIRI(_ text: String) {
         #expect(throws: IRIError.invalidIRI(text)) {
             _ = try IRI(validating: text)
         }
+    }
+
+    @Test("IRIKit does not decode XML entities; an undecoded entity stays in the IRI as literal text.")
+    func xmlEntitiesAreNotDecoded() throws {
+        let iri = try IRI(validating: "https://example.org/q?a=1&amp;b=2")
+
+        #expect(iri.rawValue == "https://example.org/q?a=1&amp;b=2")
+        #expect(try iri.normalized(.syntaxAndSchemeBased).rawValue == "https://example.org/q?a=1&amp;b=2")
     }
 
     @Test("HTTP-family IRIs without a host fail scheme-based normalization, as URIKit's strict mode did.")
@@ -63,10 +73,18 @@ struct IRIKitReexportTests {
         }
     }
 
-    @Test("XML text decoded by its format normalizes as URIKit's legacy layer did.")
-    func decodedXMLIdentifierNormalizes() throws {
-        let decoded = try IRI(validating: "HTTPS://Example.org/folder/file%20name?a=1&b=2")
+    @Test("Percent-encoded spaces and query ampersands survive scheme-based normalization.")
+    func percentEncodingAndQuerySurviveNormalization() throws {
+        let iri = try IRI(validating: "HTTPS://Example.org/folder/file%20name?a=1&b=2")
 
-        #expect(try decoded.normalized(.syntaxAndSchemeBased).rawValue == "https://example.org/folder/file%20name?a=1&b=2")
+        #expect(try iri.normalized(.syntaxAndSchemeBased).rawValue == "https://example.org/folder/file%20name?a=1&b=2")
+    }
+
+    @Test("A boundary that needs an ASCII host gets the ACE form from Foundation.")
+    func aceHostComesFromFoundationAtTheBoundary() throws {
+        let iri = try IRI(validating: "https://Bücher.example/private/card").normalized(.syntaxAndSchemeBased)
+
+        #expect(URLComponents(string: iri.rawValue)?.encodedHost == "xn--bcher-kva.example")
+        #expect(URL(string: iri.rawValue)?.absoluteString == "https://xn--bcher-kva.example/private/card")
     }
 }

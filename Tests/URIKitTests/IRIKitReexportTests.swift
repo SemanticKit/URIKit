@@ -2,9 +2,9 @@ import Foundation
 import Testing
 import URIKit
 
-/// URIKit has folded into IRIKit. These tests import only URIKit and check
-/// that its former behaviours now come from IRIKit's types, and that the
-/// behaviours IRIKit deliberately changed are left to the boundary step.
+/// These tests import only URIKit and check that what it exposes is IRIKit:
+/// RFC 3987 validation and section 5 normalization, with repair of boundary
+/// text left to the decoder that read it.
 @Suite("import URIKit re-exports IRIKit", .tags(.reexport))
 struct IRIKitReexportTests {
     @Test("The IRI type seen through URIKit is IRIKit's IRI.")
@@ -15,12 +15,11 @@ struct IRIKitReexportTests {
         #expect(viaIRIKit.rawValue == "https://example.org/a")
     }
 
-    @Test("Former strict normalization is RFC 3987 section 5 normalization in IRIKit.")
+    @Test("Scheme-based normalization follows RFC 3987 section 5.")
     func normalizesSchemeHostPathAndDefaultPort() throws {
         let iri = try IRI(validating: "HTTPS://BÜCHER.Example:443/a/./b/../c")
 
-        // URIKit printed the ACE host "xn--bcher-kva.example". IRIKit keeps
-        // the legible IDN and treats the ACE spelling as equivalent.
+        // The legible IDN is kept, and the ACE spelling is equivalent.
         #expect(try iri.normalized(.syntaxAndSchemeBased).rawValue == "https://bücher.example/a/c")
         #expect(try iri.isEquivalent(
             to: IRI(validating: "https://xn--bcher-kva.example/a/c"),
@@ -57,7 +56,7 @@ struct IRIKitReexportTests {
         #expect(try iri.normalized(.syntaxAndSchemeBased).rawValue == "https://example.org/q?a=1&amp;b=2")
     }
 
-    @Test("HTTP-family IRIs without a host fail scheme-based normalization, as URIKit's strict mode did.")
+    @Test("HTTP-family IRIs without a host fail scheme-based normalization.")
     func requiresHostForHTTPFamily() throws {
         let iri = try IRI(validating: "https:/relative")
 
